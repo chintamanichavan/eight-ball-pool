@@ -1,0 +1,8 @@
+services:
+  web:
+    build: .
+    image: eight-ball-pool:0.1.0
+    container_name: eight-ball-pool
+    restart: unless-stopped
+    ports:
+      - "5180:80"

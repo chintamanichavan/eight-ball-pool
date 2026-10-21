@@ -1,0 +1,83 @@
+.match {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.match__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.match__player {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.match__player--them { text-align: right; }
+
+/* Whoever is at the table. */
+.match__player--turn { background: var(--accent-soft); border-color: var(--accent); }
+
+.match__name { font-weight: 600; line-height: 1.25; }
+.match__task { font-size: 0.8125rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.match__middle { text-align: center; }
+.match__message { min-height: 1.5em; font-weight: 500; line-height: 1.5; }
+
+.match__canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  cursor: crosshair;
+  /* The page must not scroll or zoom while a finger aims. */
+  touch-action: none;
+  user-select: none;
+}
+
+.match__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+}
+
+.match__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.match__levels { display: flex; gap: 2px; }
+.match__levels .button { border-radius: 0; }
+.match__levels .button:first-child { border-radius: 10px 0 0 10px; }
+.match__levels .button:last-child { border-radius: 0 10px 10px 0; }
+.match__levels .button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+
+.match__hint { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5; }
+
+/* One hint for a mouse, another for a finger. */
+.match__hint--touch { display: none; }
+
+@media (hover: none) {
+  .match__hint--mouse { display: none; }
+  .match__hint--touch { display: block; }
+}
+
+.control__name { font-weight: 600; line-height: 1.2; }
+.control__hint { font-size: 0.8125rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .match { padding: var(--space-3); }
+  .match__head { grid-template-columns: 1fr 1fr; }
+  .match__middle { grid-column: 1 / -1; grid-row: 1; }
+  .match__buttons { margin-left: 0; }
+}

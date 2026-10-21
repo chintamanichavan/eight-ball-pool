@@ -1,0 +1,354 @@
+<title>Pool Game Design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<style>
+/* Layout: one reading column, with the table mockup allowed to run wider. */
+:root {
+  --bg: #f7f6f3;
+  --card: #ffffff;
+  --fg: #171717;
+  --soft: #5f5f5c;
+  --faint: #8d8c88;
+  --line: #e6e3de;
+  --felt: #2f6f66;
+  --felt-soft: #e3efec;
+  --oak: #e5d3ae;
+  --warn: #b4530a;
+  --serif: "Newsreader", "New York", Georgia, serif;
+  --sans: "Geist", -apple-system, "Segoe UI", sans-serif;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 22px rgb(0 0 0 / 0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121413; --card: #1b1e1d; --fg: #f1f1ef; --soft: #b1b3af; --faint: #7e817d;
+    --line: #2b2f2d; --felt: #5fb3a5; --felt-soft: #1d302c; --oak: #a8936b; --warn: #f0a868;
+    --shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121413; --card: #1b1e1d; --fg: #f1f1ef; --soft: #b1b3af; --faint: #7e817d;
+  --line: #2b2f2d; --felt: #5fb3a5; --felt-soft: #1d302c; --oak: #a8936b; --warn: #f0a868;
+  --shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding-inline: 20px;
+  padding-block: 40px 72px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 16px/1.6 var(--sans);
+}
+.page { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+.read { max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+h1, h2, h3 { margin: 0; font-family: var(--serif); font-weight: 500; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.05; }
+h2 { font-size: 1.75rem; line-height: 1.15; }
+h3 { font-size: 1.2rem; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--felt); }
+.lead { font-size: 1.15rem; color: var(--soft); }
+.soft { color: var(--soft); }
+.note { padding: 14px 18px; border-left: 3px solid var(--warn); background: var(--card); border-radius: 0 10px 10px 0; }
+.note b { color: var(--warn); }
+
+/* ── The table mockup ── */
+.screen { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: clamp(12px, 2.4vw, 24px); display: flex; flex-direction: column; gap: 14px; }
+.hud { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.player { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.player--them { flex-direction: row-reverse; text-align: right; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--felt-soft); color: var(--felt); font-weight: 600; flex: none; }
+.player.turn .avatar { outline: 2px solid var(--felt); outline-offset: 2px; }
+.name { font-weight: 600; line-height: 1.2; }
+.sub { font-size: 0.8rem; color: var(--soft); }
+.tray { display: flex; gap: 4px; margin-top: 4px; }
+.player--them .tray { justify-content: flex-end; }
+.dot { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.18); }
+.dot.gone { opacity: 0.22; }
+.stripe { background-image: linear-gradient(#f4f1ea 0 28%, transparent 28% 72%, #f4f1ea 72%); }
+.clock { font-variant-numeric: tabular-nums; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--felt-soft); color: var(--felt); }
+
+.table { position: relative; }
+.table img { display: block; width: 100%; height: auto; }
+.table svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.guide { stroke: #fff; stroke-width: 3; fill: none; }
+.guide--thin { stroke-width: 2; stroke-dasharray: 7 7; opacity: 0.85; }
+.ghost { fill: rgb(255 255 255 / 0.18); stroke: #fff; stroke-width: 2.5; }
+.cue { stroke: #c9a66b; stroke-width: 9; stroke-linecap: round; }
+.cue--tip { stroke: #f3ead8; stroke-width: 9; stroke-linecap: round; }
+.callout { fill: #171717; font: 600 22px var(--sans); }
+.callout-bg { fill: #fff; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+.control { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.control b { display: block; font-weight: 600; line-height: 1.2; }
+.power { width: min(220px, 46vw); height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+.power i { display: block; width: 62%; height: 100%; background: linear-gradient(90deg, var(--felt), var(--warn)); }
+.spin { width: 54px; height: 54px; border-radius: 50%; background: #f4f1ea; border: 1px solid rgb(0 0 0 / 0.2); position: relative; flex: none; }
+.spin i { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: #d7263d; left: 30px; top: 14px; }
+.say { margin-left: auto; padding: 8px 14px; border-radius: 10px; background: var(--felt-soft); color: var(--fg); font-size: 0.9rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 5px 12px; border-radius: 999px; background: var(--felt-soft); color: var(--fg); font-size: 0.85rem; }
+.chip b { font-weight: 600; }
+.city { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: var(--card); display: flex; flex-direction: column; min-width: 0; }
+.city .room { padding: 14px; }
+.city img { display: block; width: 100%; height: auto; }
+.city .about { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 4px; }
+.city .about p { color: var(--soft); font-size: 0.92rem; }
+.bars { letter-spacing: 2px; color: var(--felt); white-space: nowrap; }
+.bars i { font-style: normal; color: var(--line); }
+
+/* ── Grids of small cards ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card p { color: var(--soft); }
+.step { font-family: var(--serif); font-size: 2rem; line-height: 1; color: var(--felt); }
+.photo { border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); padding: 8px; }
+.photo img { display: block; width: 100%; height: auto; border-radius: 8px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+figcaption { font-size: 0.85rem; color: var(--soft); }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--soft); }
+.swatch i { width: 26px; height: 26px; border-radius: 8px; border: 1px solid rgb(0 0 0 / 0.12); }
+
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 0.94rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+td:first-child { font-weight: 500; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.questions li { padding-left: 4px; }
+</style>
+
+<div class="page">
+
+  <section class="read">
+    <p class="label">Design, before any code</p>
+    <h1>A pool game you can play in the browser</h1>
+    <p class="lead">Eight-ball against the computer, seen from straight above. You climb from city to city, each with its own cloth and room, and win stronger cues on the way. Nothing is built yet. This page is for you to change.</p>
+    <p class="note"><b>Changed after your answers.</b> The feel of the shot now has its own section. Cues have real powers and are won, not bought. The game is a ladder of five cities, each with its own cloth and background, and you can keep any city you have won as your theme. The computer comes first; the view is straight from above. You were not sure about aiming help, so I tied it to the cue: a better cue shows a longer guide.</p>
+    <p class="soft">I have not played Pool Live Tour. This is my own design for that kind of game, and it uses none of that game's name, art or screens.</p>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">The main screen</p>
+      <h2>The table, with everything you need on one screen</h2>
+      <p class="soft">The table picture is a Blender render. The white lines, the cue and the controls are drawn on top by the page, the way the real game would draw them.</p>
+    </div>
+
+    <div class="screen" aria-label="Mockup of the table screen">
+      <div class="hud">
+        <div class="player turn">
+          <div class="avatar">K</div>
+          <div>
+            <div class="name">You</div>
+            <div class="sub">Solids · your shot</div>
+            <div class="tray" aria-label="Your balls">
+              <span class="dot gone" style="background:#1c4dbf"></span><span class="dot gone" style="background:#6b3399"></span><span class="dot gone" style="background:#1a854d"></span>
+              <span class="dot" style="background:#f5bf1a"></span><span class="dot" style="background:#d92126"></span><span class="dot" style="background:#f2731a"></span><span class="dot" style="background:#801f24"></span>
+            </div>
+          </div>
+        </div>
+        <div class="clock" title="Time left for this shot">0:24</div>
+        <div class="player player--them">
+          <div class="avatar">C</div>
+          <div>
+            <div class="name">Computer</div>
+            <div class="sub">Stripes · club level</div>
+            <div class="tray" aria-label="The computer's balls">
+              <span class="dot gone stripe" style="background-color:#f5bf1a"></span><span class="dot gone stripe" style="background-color:#d92126"></span><span class="dot gone stripe" style="background-color:#f2731a"></span><span class="dot gone stripe" style="background-color:#801f24"></span>
+              <span class="dot stripe" style="background-color:#1c4dbf"></span><span class="dot stripe" style="background-color:#6b3399"></span><span class="dot stripe" style="background-color:#1a854d"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chips">
+        <span class="chip"><b>Mumbai</b> · table 2 of 3</span>
+        <span class="chip">Your cue: <b>Lakeshore</b></span>
+        <span class="chip">Race to 1</span>
+      </div>
+
+      <div class="table">
+        <img src="concept/table-top.webp" alt="A pool table seen from above, partway through a game" width="1600" height="900">
+        <svg viewBox="0 0 1600 900" aria-hidden="true">
+          <line class="cue" x1="150" y1="685" x2="490" y2="541"></line>
+          <line class="cue--tip" x1="490" y1="541" x2="512" y2="532"></line>
+          <line class="guide" x1="565" y1="509" x2="955" y2="344"></line>
+          <circle class="ghost" cx="970" cy="337.5" r="16.5"></circle>
+          <line class="guide guide--thin" x1="1014" y1="318" x2="1405" y2="149"></line>
+          <line class="guide guide--thin" x1="978" y1="353" x2="1012" y2="432"></line>
+          <rect class="callout-bg" x="1040" y="205" width="212" height="38" rx="19"></rect>
+          <text class="callout" x="1058" y="232">goes in the corner</text>
+          <rect class="callout-bg" x="1028" y="430" width="250" height="38" rx="19"></rect>
+          <text class="callout" x="1046" y="457">cue ball goes this way</text>
+        </svg>
+      </div>
+
+      <div class="controls">
+        <div class="control">
+          <div><b>Power</b><span class="sub">pull the cue back, let go to shoot</span></div>
+          <div class="power" role="img" aria-label="Power at 62 percent"><i></i></div>
+        </div>
+        <div class="control">
+          <div class="spin" role="img" aria-label="Strike point: high and to the right"><i></i></div>
+          <div><b>Spin</b><span class="sub">tap where the cue hits the ball</span></div>
+        </div>
+        <div class="say">Red ball, top right pocket</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">One shot</p>
+      <h2>Three moves, in the order your hand makes them</h2>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="step">1</div><h3>Aim</h3><p>Drag anywhere on the table to turn the cue. A white line shows where the cue ball goes, a ring shows where it will touch, and two short lines show where both balls head after the hit.</p></div>
+      <div class="card"><div class="step">2</div><h3>Power</h3><p>Pull the cue back. The further you pull, the harder the shot. Let go to shoot. Pull back to zero to cancel.</p></div>
+      <div class="card"><div class="step">3</div><h3>Spin</h3><p>Tap the small cue ball to choose where the tip strikes: high to follow, low to draw back, left or right for side spin. The guide lines update as you move it.</p></div>
+    </div>
+    <p class="read soft">How much of the guide you see depends on your cue. The plain house cue shows a short line. The best cue shows the whole path into the pocket.</p>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">The feel of the shot</p>
+      <h2>The part that has to be right before anything else</h2>
+      <p class="soft">You said this is what you loved most. So it gets built and tuned first, on one bare table, before cities or cues exist.</p>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>The pull</h3><p>The cue follows your finger with no lag. It draws back smoothly, and the power bar and the cue move as one.</p></div>
+      <div class="card"><h3>The hit</h3><p>A sharp click whose loudness matches the power. A hard break sounds and looks different from a soft tap. On a phone, a short buzz.</p></div>
+      <div class="card"><h3>The roll</h3><p>Balls have weight. They slide first, then roll, and slow down the way real ones do. Spin visibly bends what happens after a hit.</p></div>
+      <div class="card"><h3>The drop</h3><p>A ball rattles in the pocket jaws before it falls. The last ball of a match goes in at half speed.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">Cues</p>
+      <h2>Six cues, each one stronger, the last one unfair</h2>
+      <p class="soft">A cue changes what you are able to do. It never changes the laws of the table. Power raises your top speed. Spin lets the tip strike further from the centre. Guide makes the aiming line longer. Each cue after the first also has one power of its own.</p>
+    </div>
+    <figure class="photo">
+      <img src="concept/cues.webp" alt="Six cue sticks in a row, each with a different coloured handle" width="1600" height="580">
+    </figure>
+    <figcaption>Concept render, top to bottom in the order of the table below. The real cues would differ in shape and detail, not only colour.</figcaption>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Cue</th><th>Won in</th><th>Power</th><th>Spin</th><th>Guide</th><th>Its own power</th></tr></thead>
+        <tbody>
+          <tr><td>House</td><td>You start with it</td><td class="bars">●●<i>●●●</i></td><td class="bars">●●<i>●●●</i></td><td class="bars">●●<i>●●●</i></td><td>None</td></tr>
+          <tr><td>Lakeshore</td><td>Chicago</td><td class="bars">●●●<i>●●</i></td><td class="bars">●●<i>●●●</i></td><td class="bars">●●●<i>●●</i></td><td>Shows where the struck ball heads</td></tr>
+          <tr><td>Monsoon</td><td>Mumbai</td><td class="bars">●●●<i>●●</i></td><td class="bars">●●●●<i>●</i></td><td class="bars">●●●<i>●●</i></td><td>Shows where the cue ball goes after the hit, spin included</td></tr>
+          <tr><td>Neon</td><td>Tokyo</td><td class="bars">●●●●<i>●</i></td><td class="bars">●●●<i>●●</i></td><td class="bars">●●●●<i>●</i></td><td>The guide follows one bounce off a cushion</td></tr>
+          <tr><td>Atlas</td><td>Marrakech</td><td class="bars">●●●●●</td><td class="bars">●●●<i>●●</i></td><td class="bars">●●●<i>●●</i></td><td>The break shot hits a fifth harder</td></tr>
+          <tr><td>Aurora</td><td>Reykjavik</td><td class="bars">●●●●●</td><td class="bars">●●●●●</td><td class="bars">●●●●●</td><td>Shows the whole path of the struck ball, into the pocket</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="read soft">Cues are won by beating a city. There are no coins and no shop. The computer's players carry cues too, so a late city is hard for two reasons: a better player with a better cue.</p>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">Cities</p>
+      <h2>Five cities, each with its own cloth and room</h2>
+      <p class="soft">Each city has three tables. Win all three to take its cue and open the next city. Once you have won a city, its cloth and its room are yours: you can pick them as your theme for any later match.</p>
+    </div>
+    <div class="grid">
+      <div class="city"><div class="room" style="background:linear-gradient(160deg,#5d7186,#2f3d4d)"><img src="concept/city-chicago.webp" alt="A table with classic green cloth" width="800" height="450"></div><div class="about"><h3>1 · Chicago</h3><p>Classic green cloth. A lakefront room at dusk, in slate blue. The opponent misses often.</p></div></div>
+      <div class="city"><div class="room" style="background:linear-gradient(160deg,#b9aa98,#7d7166)"><img src="concept/city-mumbai.webp" alt="A table with sea green cloth" width="800" height="450"></div><div class="about"><h3>2 · Mumbai</h3><p>Sea green cloth. A monsoon evening in warm grey. The opponent starts to play position.</p></div></div>
+      <div class="city"><div class="room" style="background:linear-gradient(160deg,#2a1338,#0d0d16)"><img src="concept/city-tokyo.webp" alt="A table with indigo cloth" width="800" height="450"></div><div class="about"><h3>3 · Tokyo</h3><p>Indigo cloth. A neon night, near black with a magenta glow. The opponent rarely misses an easy ball.</p></div></div>
+      <div class="city"><div class="room" style="background:linear-gradient(160deg,#e3c9a1,#c79a63)"><img src="concept/city-marrakech.webp" alt="A table with brick red cloth" width="800" height="450"></div><div class="about"><h3>4 · Marrakech</h3><p>Brick red cloth. A tiled courtyard in sand. The opponent uses spin and plans two shots ahead.</p></div></div>
+      <div class="city"><div class="room" style="background:linear-gradient(160deg,#123a4a,#0b1626)"><img src="concept/city-reykjavik.webp" alt="A table with slate blue cloth" width="800" height="450"></div><div class="about"><h3>5 · Reykjavik</h3><p>Slate blue cloth. Northern lights over deep navy. The opponent plays close to perfect pool.</p></div></div>
+    </div>
+    <p class="read soft">The cities and their looks are my picks. Swap in any places that mean something to you. An opponent's level is one number underneath: how much error is added to its aim and power.</p>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">The other screens</p>
+      <h2>Three screens in total</h2>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>Map</h3><p>The five cities in a row, with your progress in each. Pick a table, pick a cue, pick a theme, play. No sign-up, no coins, no shop.</p></div>
+      <div class="card"><h3>Table</h3><p>The screen above. Break, take turns, call the pocket for the eight ball. A foul gives the other player the cue ball in hand.</p></div>
+      <div class="card"><h3>Result</h3><p>Who won, how many shots each side made, your longest run, and one shot of yours replayed with the line the computer would have chosen.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">The look</p>
+      <h2>A calm room with one table in it</h2>
+      <p class="soft">The page around the table uses your Apple News look: a warm off-white ground, white cards, a serif for headings. The table is the only strong colour on the screen, so your eye stays on it.</p>
+    </div>
+    <figure class="photo">
+      <img src="concept/table-seat.webp" alt="The same table seen from a seat at its corner" width="1600" height="900">
+    </figure>
+    <figcaption>A concept render from Blender. The real game art would add ball numbers, a proper cue, cloth texture and pocket leather. The opening of each match could be a short Blender film of the break.</figcaption>
+    <div class="swatches">
+      <span class="swatch"><i style="background:#2f6f66"></i>Cloth: deep sea green</span>
+      <span class="swatch"><i style="background:#e5d3ae"></i>Rails: pale oak</span>
+      <span class="swatch"><i style="background:#f7f6f3"></i>Page: warm off-white</span>
+      <span class="swatch"><i style="background:#171717"></i>Text: ink</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">Under the table</p>
+      <h2>Why this belongs on an applied scientist's site</h2>
+      <p class="soft">Two parts of this game are real science problems. Both can be predicted first and measured after.</p>
+    </div>
+    <div class="two">
+      <div class="card"><h3>The physics engine</h3><p>Written in C++ and run in the browser, as your matching engine is. Balls slide, then roll. Spin changes the path after a hit. Cushions take away speed. Each of these has a formula, so the engine can be checked against it.</p></div>
+      <div class="card"><h3>The computer opponent</h3><p>It does not follow a script. It tries many shots inside the physics engine, scores where the balls would end up, and picks the best. Its level is set by how much error is added to its aim and power.</p></div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What to check</th><th>Prediction from physics</th><th>How it is measured</th></tr></thead>
+        <tbody>
+          <tr><td>Cut angle</td><td>The struck ball leaves along the line between the two centres</td><td>Fire 1,000 shots at set angles and compare the angle each ball leaves at</td></tr>
+          <tr><td>Stop shot</td><td>A straight shot with no spin left on the cue ball stops it dead</td><td>Distance the cue ball travels after the hit</td></tr>
+          <tr><td>Rolling distance</td><td>A rolling ball travels its speed squared, divided by twice the cloth's drag</td><td>Roll balls at set speeds and measure where they stop</td></tr>
+          <tr><td>Energy</td><td>Never rises during a shot</td><td>Total energy of all balls at every step of every test shot</td></tr>
+          <tr><td>Computer's pot rate</td><td>Falls smoothly as aim error rises</td><td>Play it against itself 1,000 games at each level</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="read">
+      <p class="label">Scope</p>
+      <h2>What version 1 is, and is not</h2>
+    </div>
+    <div class="two">
+      <div class="card"><h3>In version 1, in this order</h3><ol><li>One bare table where the shot feels right</li><li>The rules of eight-ball and a computer opponent</li><li>The six cues and their powers</li><li>The five cities, their cloths and rooms, and your theme</li></ol></div>
+      <div class="card"><h3>Not yet</h3><ul><li>Playing against another person online</li><li>Accounts, ranks and coins</li><li>Other games such as nine-ball</li><li>Jump shots and curved shots</li></ul></div>
+    </div>
+    <p class="read soft">Each step is playable on its own. I would show you step 1 and wait for your word before starting step 2. Progress is saved in your browser, so there is no server and no account.</p>
+  </section>
+
+  <section class="read">
+    <p class="label">Before I build</p>
+    <h2>Three things to confirm</h2>
+    <ol class="questions">
+      <li><b>Cue powers.</b> Is this the kind of strength you meant, or do you want wilder powers, such as a cue that curves the ball?</li>
+      <li><b>The cities.</b> Keep these five, or name your own?</li>
+      <li><b>Start.</b> If the rest looks right, say go, and I will build step 1: one table where the shot feels right.</li>
+    </ol>
+  </section>
+
+</div>

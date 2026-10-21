@@ -1,0 +1,71 @@
+.cues {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.cues__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); }
+.cues__note { font-size: 0.8125rem; color: var(--text-secondary); }
+
+.cues__rack {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: var(--space-3);
+}
+
+.cue {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.cue:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.cue:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cue--chosen { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Not yet won: there to be wanted, not to be picked. */
+.cue--locked { opacity: 0.55; cursor: default; }
+.cue--locked:hover { box-shadow: none; transform: none; }
+
+/* The picture is a long thin strip. The handle is where cues differ, so the
+   strip is shown large and anchored at that end; the shaft runs off the card. */
+.cue__picture {
+  display: block;
+  height: 26px;
+  margin: 0 calc(-1 * var(--space-3)) var(--space-2);
+  overflow: hidden;
+}
+
+.cue__picture img {
+  display: block;
+  height: 26px;
+  width: auto;
+  max-width: none;
+  float: right;
+  margin-right: -8px;
+}
+
+.cue__name { font-weight: 600; }
+.cue__won { font-size: 0.75rem; color: var(--text-faint); }
+
+.cue__ratings { display: flex; flex-direction: column; gap: 3px; margin: var(--space-2) 0; }
+.cue__rating { display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); }
+.cue__pips { display: flex; gap: 3px; }
+.cue__pip { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+.cue__pip--on { background: var(--accent); }
+
+.cue__own { font-size: 0.75rem; line-height: 1.4; color: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cue { transition: none; }
+}

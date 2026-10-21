@@ -1,0 +1,21 @@
+.power { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.power > div:first-child { width: 4.5rem; flex: none; }
+
+.power__track {
+  position: relative;
+  width: min(240px, 46vw);
+  height: 28px;
+  border-radius: 14px;
+  background: var(--muted);
+  overflow: hidden;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.power__track--off { opacity: 0.5; cursor: default; }
+
+.power__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--accent), var(--warm));
+}

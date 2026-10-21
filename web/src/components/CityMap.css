@@ -1,0 +1,69 @@
+.map { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.map__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0 var(--space-2);
+}
+
+.map__theme { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--text-secondary); }
+
+.map__theme select {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.map__cities {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.city {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.city__room { padding: var(--space-3); }
+.city__room img { display: block; width: 100%; height: auto; }
+
+/* A city not yet reached: there to be seen, in half light. */
+.city--shut .city__room { filter: grayscale(0.7) brightness(0.8); }
+.city--shut .city__about { opacity: 0.6; }
+
+.city__about { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-5) var(--space-5); }
+.city__name { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; }
+.city__look { color: var(--text-secondary); font-size: 0.9375rem; }
+.city__state { font-size: 0.8125rem; font-weight: 500; color: var(--accent); }
+.city--shut .city__state { color: var(--text-faint); }
+
+.city__tables { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.city__table--beaten { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.button:disabled { opacity: 0.5; cursor: default; box-shadow: none; transform: none; }
+
+.map__dev { padding: 0 var(--space-2); font-size: 0.8125rem; color: var(--text-faint); }
+
+.map__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+}
